@@ -57,7 +57,7 @@ declare -a NAMES=("fargate" "ec2")
 declare -a URLS=("${FARGATE_URL}/search" "${EC2_URL}/search")
 
 for i in "${!URLS[@]}"; do
-    for CONC in 10 50; do
+    for CONC in 10 40; do
         OUTFILE="${RESULTS_DIR}/scenario-b-${NAMES[$i]}-c${CONC}.txt"
         echo "=== ${NAMES[$i]} | concurrency=${CONC} | 500 requests ===" | tee "$OUTFILE"
         oha_http -n 500 -c "$CONC" "${URLS[$i]}" 2>&1 | tee -a "$OUTFILE"

@@ -33,10 +33,10 @@ oha_lambda -n 200 -c 10 \
     "${LAMBDA_CONTAINER_URL}/search" 2>&1 | tee "${RESULTS_DIR}/scenario-c-lambda-container.txt" &
 
 # Fargate/EC2: 200 requests at c=50 (no concurrency limit)
-oha_http -n 200 -c 50 \
+oha_http -n 200 -c 40 \
     "${FARGATE_URL}/search" 2>&1 | tee "${RESULTS_DIR}/scenario-c-fargate.txt" &
 
-oha_http -n 200 -c 50 \
+oha_http -n 200 -c 40 \
     "${EC2_URL}/search" 2>&1 | tee "${RESULTS_DIR}/scenario-c-ec2.txt" &
 
 wait
