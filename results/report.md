@@ -4,6 +4,11 @@ I spent a considerable amount of time configuring the environment, as I do not h
 ## Assignment 1
 The results of Assignment 1 (deploying all environments) are available in `./assignment-1-endpoints.txt`. All scripts ran successfully without any issues.
 
+## Assignment 2
+I encountered some problems completing this assignment. I was able to run the script successfully, but the commands for fetching logs returned nothing. I recall that I managed to run it once, but I forgot to save the output.
+
+To answer the last question, in general, Lambda ZIP deployments have faster cold starts than container-based Lambdas. When a ZIP function is invoked, AWS only needs to load the code package and set up the execution environment, which is quick. Container-based Lambdas require extra steps: the container image must be pulled (if not already cached), started, and then the function code initialized, which makes cold starts slower.
+
 ## Assignment 3
 
 query_time_ms:
@@ -80,3 +85,52 @@ Memory cost: 1.0 × $0.004445 × 24 × 30 = $3.20
 Monthly cost: $17.77/month
 
 ## Assignment 6
+
+**Lambda:**
+279,000 requests/day * 30 = 8,370,000
+Traffic model: 8,370,000 requests/month, 15ms each (the same approximated p50 value for zip and container), 512MB memory
+  Request cost: 8,370,000 × $0.20/1M = $1.674
+  GB-seconds: 8,370,000 × 0.015 × 0.5 = 62,775
+  Compute cost: 62,775 × $0.0000166667 = $1.046
+  Total: $2.72/month
+
+**Fargate:**
+Config: 0.25 vCPU, 0.5 GB memory, running 24/7
+  vCPU cost: 0.25 × $0.04048 × 24 × 30 = $7.29
+  Memory cost: 0.5  × $0.004445 × 24 × 30 = $1.60
+  Total: $8.89/month
+
+**EC2:**
+Config: 2 vCPU, 2 GB RAM, on-demand, running 24/7
+  Instance cost: $0.0208/h × 24 × 30 = $14.98
+  Total: $14.98/month
+
+
+Question: Break-even RPS — at what average RPS does Lambda become more expensive than Fargate? Show the algebra.
+Seconds/month:  30 × 24 × 3600 = 2,592,000 s
+
+Lambda cost at avg RPS = R:
+  Request cost:  R × 2,592,000 / 1,000,000 × $0.20 = R × $0.5184
+  Compute cost:  R × 2,592,000 × 0.015 × 0.5 × $0.0000166667 = R × $0.3240
+  Total Lambda:  R × $0.8424
+
+Set equal to Fargate:
+    R × $0.8424 = $8.89
+    R = $8.89 / $0.8424 = 10.6 RPS
+Set equal to EC2:
+    R × $0.8424 = $14.98
+    R = $14.98 / $0.8424 = 17.8 RPS
+
+Lambda stops being cost-effective at:
+10.6 RPS vs Fargate
+17.8 RPS vs EC2
+
+
+Recommended environment: Lambda (ZIP)
+Given the SLO requirement (p99 < 500 ms) and the traffic model, Lambda (ZIP) is the recommended environment. It provides the lowest cost and meets the performance requirements. Based on the calculations and example requirements I provided above, Lambda costs about $2.72 per month, compared to $8.89 for Fargate and $14.98 for EC2, making it the most cost-effective option. I was really surprised to see the amount of runs and the corresponding price.
+
+Lambda meets the SLO as deployed. In Scenario C (burst from zero), Lambda achieved p50 = 17.5 ms, p95 = 119.8 ms, and p99 = 124.5 ms, which is well below the required 500 ms. This shows that Lambda handles burst traffic efficiently. Each request runs in its own execution environment, so latency stays low even when many requests arrive at the same time. Some higher latency values are caused by cold starts, but they still remain within the SLO.
+
+Lambda works best when traffic is uneven or when many requests happen at the same time. It scales automatically, so you don’t need to manage servers. It is ideal for event-driven apps, like APIs with unpredictable traffic, background tasks or scheduled jobs. Lambda runs only when triggered. It is very cheap when the system is idle.
+
+The recommendation would change if the average load increased and became steady. Based on the calculations, Lambda becomes more expensive than Fargate at around 10.6 RPS and more expensive than EC2 at around 17.8 RPS. Lambda may also not be suitable for long-running tasks or stateful workloads. In those cases, Fargate or EC2 would be more appropriate.
